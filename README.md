@@ -1,73 +1,66 @@
-# React + TypeScript + Vite
+# Planificador de Estudio — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Stack: React + TypeScript + Vite + Tailwind CSS v4 + React Router + Axios
 
-Currently, two official plugins are available:
+## Estructura generada
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── types/
+│   └── index.ts          # Tipos TypeScript (User, Task, Subject, Subtask, etc.)
+├── services/
+│   ├── api.ts            # Instancia Axios base → Render backend
+│   ├── authService.ts    # Login, register, session localStorage
+│   ├── subjectService.ts # CRUD materias
+│   ├── taskService.ts    # CRUD tareas + vista hoy
+│   └── subtaskService.ts # CRUD subtareas + check-conflict
+├── components/
+│   ├── Layout.tsx        # Shell con nav principal
+│   ├── ProtectedRoute.tsx
+│   └── TaskCard.tsx      # Tarjeta reutilizable de tarea
+├── pages/
+│   ├── AuthPage.tsx      # Login + Registro (Sprint 1 sin JWT)
+│   ├── HoyPage.tsx       # Vista del día: Vencidas → Hoy → Próximas
+│   ├── CrearPage.tsx     # Crear tarea + subtareas
+│   ├── ActividadPage.tsx # Detalle, cambiar estado, marcar subtareas
+│   └── ProgresoPage.tsx  # Estadísticas globales y por materia
+├── App.tsx               # React Router con rutas protegidas
+├── main.tsx
+└── index.css             # @import "tailwindcss" + overrides
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Rutas
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Ruta | Página |
+|------|--------|
+| `/auth` | Login / Registro |
+| `/hoy` | Vista del día |
+| `/crear` | Crear actividad |
+| `/actividad/:id` | Detalle y edición |
+| `/progreso` | Progreso general |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Setup
+
+```bash
+# Instalar dependencias (si no están)
+npm install react-router-dom axios
+
+# Iniciar dev server
+npm run dev
 ```
+
+## Deploy Vercel
+
+1. Conectar repo a Vercel
+2. Framework: Vite
+3. Build command: `npm run build`
+4. Output dir: `dist`
+5. Agregar en Settings → Environment Variables: ninguna necesaria (baseURL está hardcodeada)
+
+> Para producción considera mover la baseURL a `VITE_API_URL` en `.env`
+
+## Notas Sprint 1
+
+- Sin JWT: sesión guardada en localStorage (`user_id`, `user_email`, etc.)
+- Conflicto de sobrecarga: botón ⚡ en cada subtarea en `/actividad/:id`
+- Usuario demo: `jose@gmail.com` / `123456`
