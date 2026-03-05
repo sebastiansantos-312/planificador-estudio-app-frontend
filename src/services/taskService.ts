@@ -14,6 +14,7 @@ export const taskService = {
         return data;
     },
 
+    // Vista Hoy — devuelve subtareas agrupadas, no tareas
     async getHoy(email: string): Promise<HoyGroup> {
         const { data } = await api.get<HoyGroup>("/tasks/hoy/prioridades", {
             params: { user_email: email },
@@ -27,7 +28,7 @@ export const taskService = {
     },
 
     async update(id: string, payload: TaskUpdate): Promise<Task> {
-        const { data } = await api.put<Task>(`/tasks/${id}`, payload);
+        const { data } = await api.patch<Task>(`/tasks/${id}`, payload);
         return data;
     },
 

@@ -43,21 +43,27 @@ export interface SubjectCreate {
     user_id: string;
 }
 
+export interface SubjectCreateByEmail {
+    name: string;
+    color: string;
+    user_email: string;
+}
+
 // ─── Task ────────────────────────────────────────────────────────────────────
 export type TaskPriority = "alta" | "media" | "baja";
-export type TaskStatus = "pendiente" | "en_progreso" | "completada";
+// Backend usa: "pending" | "in_progress" | "done"
+export type TaskStatus = "pending" | "in_progress" | "done";
 
 export interface Task {
     id: string;
     title: string;
     subject_id: string;
     user_id: string;
-    due_date: string;          // ISO date string
+    due_date: string;
     duration_minutes: number;
     priority: TaskPriority;
     status: TaskStatus;
     created_at?: string;
-    subject?: Subject;         // joined optionally
 }
 
 export interface TaskCreate {
@@ -75,14 +81,15 @@ export interface TaskUpdate extends Partial<TaskCreate> {
 }
 
 // ─── Subtask ─────────────────────────────────────────────────────────────────
-export type SubtaskStatus = "pendiente" | "completada";
+// Backend usa: "pending" | "done"
+export type SubtaskStatus = "pending" | "done";
 
 export interface Subtask {
     id: string;
     task_id: string;
     title: string;
     description?: string;
-    target_date: string;       // ISO date string
+    target_date: string;
     estimated_minutes: number;
     status: SubtaskStatus;
     created_at?: string;
@@ -102,19 +109,42 @@ export interface SubtaskUpdate extends Partial<SubtaskCreate> {
 }
 
 // ─── Vista Hoy ───────────────────────────────────────────────────────────────
+// Backend devuelve: { date, overdue, for_today, upcoming } con subtareas
+export interface HoySubtask {
+    id: string;
+    task_id: string;
+    title: string;
+    description?: string;
+    target_date: string;
+    estimated_minutes: number;
+    status: string;
+    created_at?: string;
+}
+
 export interface HoyGroup {
-    vencidas: Task[];
-    para_hoy: Task[];
-    proximas: Task[];
+    date: string;
+    overdue: HoySubtask[];
+    for_today: HoySubtask[];
+    upcoming: HoySubtask[];
 }
 
 // ─── Conflict Check ──────────────────────────────────────────────────────────
 export interface ConflictResult {
-    conflict: boolean;
-    total_minutes: number;
+    has_conflict: boolean;
+    current_minutes: number;
+    new_total_minutes: number;
     limit_minutes: number;
+    current_hours: number;
+    new_total_hours: number;
+    limit_hours: number;
     message: string;
 }
 
 // ─── UI helpers ──────────────────────────────────────────────────────────────
 export type LoadingState = "idle" | "loading" | "success" | "error";
+
+export const STATUS_LABELS: Record<string, string> = {
+    pending: "Pendiente",
+    in_progress: "En progreso",
+    done: "Completada",
+};

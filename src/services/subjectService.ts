@@ -1,5 +1,5 @@
 import api from "./api";
-import type { Subject, SubjectCreate } from "../types";
+import type { Subject, SubjectCreateByEmail } from "../types";
 
 export const subjectService = {
     async getByEmail(email: string): Promise<Subject[]> {
@@ -14,13 +14,14 @@ export const subjectService = {
         return data;
     },
 
-    async create(payload: SubjectCreate): Promise<Subject> {
-        const { data } = await api.post<Subject>("/subjects/", payload);
+    // Crear materia usando email (no user_id)
+    async createByEmail(payload: SubjectCreateByEmail): Promise<Subject> {
+        const { data } = await api.post<Subject>("/subjects/by-email", payload);
         return data;
     },
 
-    async update(id: string, payload: Partial<SubjectCreate>): Promise<Subject> {
-        const { data } = await api.put<Subject>(`/subjects/${id}`, payload);
+    async update(id: string, payload: { name?: string; color?: string }): Promise<Subject> {
+        const { data } = await api.patch<Subject>(`/subjects/${id}`, payload);
         return data;
     },
 

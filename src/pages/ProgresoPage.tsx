@@ -8,9 +8,7 @@ import type { Task, Subject, LoadingState } from "../types";
 interface SubjectStats {
     subject: Subject;
     total: number;
-    completadas: number;
-    en_progreso: number;
-    pendientes: number;
+    done: number;
 }
 
 export default function ProgresoPage() {
@@ -43,31 +41,26 @@ export default function ProgresoPage() {
         }
     }
 
-    // ── Computed stats ────────────────────────────────────────────────────────
     const total = tasks.length;
-    const completadas = tasks.filter((t) => t.status === "completada").length;
-    const enProgreso = tasks.filter((t) => t.status === "en_progreso").length;
-    const pendientes = tasks.filter((t) => t.status === "pendiente").length;
-    const globalPct = total > 0 ? Math.round((completadas / total) * 100) : 0;
+    const done = tasks.filter((t) => t.status === "done").length;
+    const inProgress = tasks.filter((t) => t.status === "in_progress").length;
+    const pending = tasks.filter((t) => t.status === "pending").length;
+    const globalPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
     const subjectStats: SubjectStats[] = subjects.map((s) => {
         const subs = tasks.filter((t) => t.subject_id === s.id);
         return {
             subject: s,
             total: subs.length,
-            completadas: subs.filter((t) => t.status === "completada").length,
-            en_progreso: subs.filter((t) => t.status === "en_progreso").length,
-            pendientes: subs.filter((t) => t.status === "pendiente").length,
+            done: subs.filter((t) => t.status === "done").length,
         };
     }).filter((s) => s.total > 0);
 
-    // Upcoming tasks sorted by due_date
     const upcoming = [...tasks]
-        .filter((t) => t.status !== "completada")
+        .filter((t) => t.status !== "done")
         .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
         .slice(0, 5);
 
-    // ── Loading ───────────────────────────────────────────────────────────────
     if (loadState === "loading") {
         return (
             <div className="flex items-center justify-center py-24" role="status" aria-live="polite">
@@ -102,13 +95,12 @@ export default function ProgresoPage() {
 
     return (
         <div className="space-y-8 pb-10">
-            {/* Header */}
             <div>
                 <h1 className="text-white text-2xl font-bold tracking-tight">Progreso</h1>
                 <p className="text-slate-400 text-sm mt-1">Resumen de todas tus actividades</p>
             </div>
 
-            {/* Global stats */}
+            {/* Global */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-white font-semibold">Progreso global</h2>
@@ -126,9 +118,9 @@ export default function ProgresoPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3 pt-1">
                     {[
-                        { label: "Completadas", value: completadas, color: "text-emerald-400" },
-                        { label: "En progreso", value: enProgreso, color: "text-violet-400" },
-                        { label: "Pendientes", value: pendientes, color: "text-slate-400" },
+                        { label: "Completadas", value: done, color: "text-emerald-400" },
+                        { label: "En progreso", value: inProgress, color: "text-violet-400" },
+                        { label: "Pendientes", value: pending, color: "text-slate-400" },
                     ].map(({ label, value, color }) => (
                         <div key={label} className="text-center">
                             <span className={`text-2xl font-bold ${color}`}>{value}</span>
@@ -138,15 +130,15 @@ export default function ProgresoPage() {
                 </div>
             </div>
 
-            {/* Per-subject stats */}
+            {/* Por materia */}
             {subjectStats.length > 0 && (
                 <section aria-labelledby="materias-heading">
                     <h2 id="materias-heading" className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
                         Por materia
                     </h2>
                     <div className="space-y-3">
-                        {subjectStats.map(({ subject, total: t, completadas: c }) => {
-                            const pct = t > 0 ? Math.round((c / t) * 100) : 0;
+                        {subjectStats.map(({ subject, total: t, done: d }) => {
+                            const pct = t > 0 ? Math.round((d / t) * 100) : 0;
                             return (
                                 <div key={subject.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
                                     <div className="flex items-center justify-between mb-2">
@@ -154,7 +146,7 @@ export default function ProgresoPage() {
                                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: subject.color }} />
                                             <span className="text-white text-sm font-medium">{subject.name}</span>
                                         </div>
-                                        <span className="text-xs text-slate-500">{c}/{t} completadas</span>
+                                        <span className="text-xs text-slate-500">{d}/{t} completadas</span>
                                     </div>
                                     <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                                         <div
@@ -169,7 +161,7 @@ export default function ProgresoPage() {
                 </section>
             )}
 
-            {/* Upcoming */}
+            {/* Próximas entregas */}
             {upcoming.length > 0 && (
                 <section aria-labelledby="proximas-heading">
                     <h2 id="proximas-heading" className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
@@ -178,8 +170,8 @@ export default function ProgresoPage() {
                     <div className="space-y-2">
                         {upcoming.map((task) => {
                             const sub = subjects.find((s) => s.id === task.subject_id);
-                            const due = new Date(task.due_date + "T00:00:00");
                             const today = new Date(); today.setHours(0, 0, 0, 0);
+                            const due = new Date(task.due_date + "T00:00:00");
                             const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                             const urgency = diffDays < 0 ? "text-red-400" : diffDays <= 2 ? "text-amber-400" : "text-slate-500";
                             return (
@@ -189,9 +181,7 @@ export default function ProgresoPage() {
                                     className="w-full text-left bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                                 >
                                     <div className="flex-1 min-w-0">
-                                        {sub && (
-                                            <span className="text-xs" style={{ color: sub.color }}>{sub.name} · </span>
-                                        )}
+                                        {sub && <span className="text-xs" style={{ color: sub.color }}>{sub.name} · </span>}
                                         <span className="text-white text-sm font-medium">{task.title}</span>
                                     </div>
                                     <span className={`text-xs font-medium shrink-0 ${urgency}`}>

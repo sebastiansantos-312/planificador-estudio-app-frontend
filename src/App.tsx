@@ -7,6 +7,7 @@ import HoyPage from "./pages/HoyPage";
 import CrearPage from "./pages/CrearPage";
 import ActividadPage from "./pages/ActividadPage";
 import ProgresoPage from "./pages/ProgresoPage";
+import MateriasPage from "./pages/MateriasPage";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="crear" element={<CrearPage />} />
           <Route path="actividad/:id" element={<ActividadPage />} />
           <Route path="progreso" element={<ProgresoPage />} />
+          <Route path="materias" element={<MateriasPage />} />
         </Route>
 
         {/* Fallback */}
