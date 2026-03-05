@@ -116,8 +116,7 @@ export default function CrearPage() {
         { value: "baja", label: "Baja", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30" },
     ];
 
-    const selectedPriorityStyle = PRIORITY_OPTIONS.find((p) => p.value === priority)?.color ?? "";
-
+   
     return (
         <div className="space-y-8 pb-10">
             {/* Header */}
