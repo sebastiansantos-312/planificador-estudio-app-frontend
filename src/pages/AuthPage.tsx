@@ -60,6 +60,14 @@ export default function AuthPage() {
             return;
         }
 
+        // Validacion de formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            setError("Por favor ingresa un correo electronico valido.");
+            setState("error");
+            return;
+        }
+
         setState("loading");
 
         try {
