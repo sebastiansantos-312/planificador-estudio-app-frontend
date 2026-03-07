@@ -42,6 +42,7 @@ export default function AuthPage() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [birthDate, setBirthDate] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     /** Maneja el envío del formulario para login o registro según el modo activo. */
     async function handleSubmit(e: React.FormEvent) {
@@ -191,10 +192,39 @@ export default function AuthPage() {
                             <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1.5">
                                 Contraseña
                             </label>
-                            <input id="password" type="password" required value={password}
-                                onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
-                                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 pr-11 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((v) => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition focus:outline-none"
+                                    aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                >
+                                    {showPassword ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.114-3.582m2.93-2.527A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.973 9.973 0 01-1.84 3.169M15 12a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
+                            {mode === "register" && (
+                                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                                    Recomendado: mínimo 8 caracteres, combina letras, números y algún símbolo como @, #, !
+                                </p>
+                            )}
                         </div>
 
                         {/* Mensaje de error del backend */}
