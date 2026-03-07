@@ -47,6 +47,19 @@ export default function AuthPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
+
+        // Validación de campos vacíos antes de llamar al backend
+        if (!email.trim() || !password.trim()) {
+            setError("Por favor completa todos los campos.");
+            setState("error");
+            return;
+        }
+        if (mode === "register" && (!firstName.trim() || !lastName.trim())) {
+            setError("Por favor completa nombre y apellido.");
+            setState("error");
+            return;
+        }
+
         setState("loading");
 
         try {
