@@ -196,7 +196,14 @@ export default function AuthPage() {
                             </div>
                         )}
 
-                        <button type="submit" disabled={isLoading}
+                        <button
+                            type="submit"
+                            disabled={
+                                isLoading ||
+                                !email.trim() ||
+                                !password.trim() ||
+                                (mode === "register" && (!firstName.trim() || !lastName.trim()))
+                            }
                             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 shadow-lg shadow-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-900 mt-2"
                         >
                             {isLoading ? "Cargando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
