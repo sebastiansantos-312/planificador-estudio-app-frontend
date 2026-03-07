@@ -1,3 +1,24 @@
+/**
+ * pages/ProgresoPage.tsx — Dashboard de progreso académico (ruta /progreso).
+ *
+ * Muestra estadísticas calculadas en el frontend a partir de los datos del backend:
+ *   - Progreso global: barra + porcentaje completado.
+ *   - Contadores por estado: completadas / en progreso / pendientes.
+ *   - Progreso por materia: barra de color con conteo de tareas.
+ *   - Próximas 5 entregas: ordenadas por fecha, con urgencia visual.
+ *
+ * Flujo de carga:
+ *   Carga en paralelo tareas y materias del usuario:
+ *   taskService.getByEmail()    → GET /tasks/by-email?user_email={email}
+ *   subjectService.getByEmail() → GET /subjects/by-email?user_email={email}
+ *
+ * Todo el cálculo de estadísticas ocurre en el frontend — no hay endpoint dedicado.
+ *
+ * Peticiones al backend:
+ *   GET /tasks/by-email?user_email={email}
+ *   GET /subjects/by-email?user_email={email}
+ */
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taskService } from "../services/taskService";
@@ -5,6 +26,7 @@ import { subjectService } from "../services/subjectService";
 import { authService } from "../services/authService";
 import type { Task, Subject, LoadingState } from "../types";
 
+/** Estadísticas calculadas para una materia específica. */
 interface SubjectStats {
     subject: Subject;
     total: number;
@@ -25,6 +47,10 @@ export default function ProgresoPage() {
         load();
     }, []);
 
+    /**
+     * Carga tareas y materias en paralelo.
+     * Llama a GET /tasks/by-email y GET /subjects/by-email simultáneamente.
+     */
     async function load() {
         if (!session) return;
         try {
@@ -41,12 +67,15 @@ export default function ProgresoPage() {
         }
     }
 
+    // ── Cálculos de estadísticas (100% frontend) ──────────────────────────────
+
     const total = tasks.length;
     const done = tasks.filter((t) => t.status === "done").length;
     const inProgress = tasks.filter((t) => t.status === "in_progress").length;
     const pending = tasks.filter((t) => t.status === "pending").length;
     const globalPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+    /** Estadísticas por materia — solo incluye materias que tienen al menos una tarea. */
     const subjectStats: SubjectStats[] = subjects.map((s) => {
         const subs = tasks.filter((t) => t.subject_id === s.id);
         return {
@@ -56,6 +85,10 @@ export default function ProgresoPage() {
         };
     }).filter((s) => s.total > 0);
 
+    /**
+     * Próximas 5 entregas: tareas no completadas, ordenadas por fecha ascendente.
+     * Se muestra la urgencia en días para visualizar riesgo de vencimiento.
+     */
     const upcoming = [...tasks]
         .filter((t) => t.status !== "done")
         .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
@@ -100,22 +133,19 @@ export default function ProgresoPage() {
                 <p className="text-slate-400 text-sm mt-1">Resumen de todas tus actividades</p>
             </div>
 
-            {/* Global */}
+            {/* Tarjeta de progreso global */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between">
                     <h2 className="text-white font-semibold">Progreso global</h2>
                     <span className="text-violet-400 font-bold text-2xl">{globalPct}%</span>
                 </div>
                 <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-700 rounded-full"
+                    <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-700 rounded-full"
                         style={{ width: `${globalPct}%` }}
-                        role="progressbar"
-                        aria-valuenow={globalPct}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
+                        role="progressbar" aria-valuenow={globalPct} aria-valuemin={0} aria-valuemax={100}
                     />
                 </div>
+                {/* Contadores por estado */}
                 <div className="grid grid-cols-3 gap-3 pt-1">
                     {[
                         { label: "Completadas", value: done, color: "text-emerald-400" },
@@ -130,7 +160,7 @@ export default function ProgresoPage() {
                 </div>
             </div>
 
-            {/* Por materia */}
+            {/* Progreso por materia */}
             {subjectStats.length > 0 && (
                 <section aria-labelledby="materias-heading">
                     <h2 id="materias-heading" className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
@@ -148,9 +178,9 @@ export default function ProgresoPage() {
                                         </div>
                                         <span className="text-xs text-slate-500">{d}/{t} completadas</span>
                                     </div>
+                                    {/* Barra con el color de la materia */}
                                     <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full transition-all duration-500"
+                                        <div className="h-full rounded-full transition-all duration-500"
                                             style={{ width: `${pct}%`, backgroundColor: subject.color }}
                                         />
                                     </div>
@@ -161,7 +191,7 @@ export default function ProgresoPage() {
                 </section>
             )}
 
-            {/* Próximas entregas */}
+            {/* Próximas entregas — muestra urgencia en días */}
             {upcoming.length > 0 && (
                 <section aria-labelledby="proximas-heading">
                     <h2 id="proximas-heading" className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
@@ -173,11 +203,10 @@ export default function ProgresoPage() {
                             const today = new Date(); today.setHours(0, 0, 0, 0);
                             const due = new Date(task.due_date + "T00:00:00");
                             const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                            // Urgencia visual: rojo si vencida, ámbar si ≤2 días, gris si más tiempo
                             const urgency = diffDays < 0 ? "text-red-400" : diffDays <= 2 ? "text-amber-400" : "text-slate-500";
                             return (
-                                <button
-                                    key={task.id}
-                                    onClick={() => navigate(`/actividad/${task.id}`)}
+                                <button key={task.id} onClick={() => navigate(`/actividad/${task.id}`)}
                                     className="w-full text-left bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                                 >
                                     <div className="flex-1 min-w-0">

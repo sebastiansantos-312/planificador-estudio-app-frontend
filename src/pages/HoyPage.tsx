@@ -1,9 +1,30 @@
+/**
+ * pages/HoyPage.tsx — Vista diaria priorizada (US-04).
+ *
+ * Muestra las subtareas pendientes del usuario agrupadas y ordenadas
+ * por urgencia. Es la página principal de la app (ruta /hoy).
+ *
+ * ⚠️ IMPORTANTE: Esta página muestra SUBTAREAS, no tareas directamente.
+ *   Si una tarea no tiene subtareas con fecha objetivo, no aparece aquí.
+ *   Al hacer clic en un ítem navega a /actividad/{subtarea.task_id}.
+ *
+ * Flujo de carga:
+ *   1. Lee email del usuario desde localStorage (authService.getSession()).
+ *   2. taskService.getHoy(email) → GET /tasks/hoy/prioridades?user_email={email}
+ *   3. Backend devuelve { date, overdue, for_today, upcoming } con subtareas ya ordenadas.
+ *   4. Renderiza tres secciones: Vencidas / Para hoy / Próximas.
+ *
+ * Peticiones al backend:
+ *   GET /tasks/hoy/prioridades?user_email={email}
+ */
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taskService } from "../services/taskService";
 import { authService } from "../services/authService";
 import type { HoySubtask, LoadingState } from "../types";
 
+/** Configuración de cada sección de la vista diaria. */
 interface Section {
     key: string;
     label: string;
@@ -29,6 +50,10 @@ export default function HoyPage() {
         load();
     }, []);
 
+    /**
+     * Carga la vista diaria desde el backend.
+     * Llama a GET /tasks/hoy/prioridades y distribuye los grupos en el estado local.
+     */
     async function load() {
         if (!session) return;
         setLoadState("loading");
@@ -46,6 +71,7 @@ export default function HoyPage() {
 
     const total = overdue.length + forToday.length + upcoming.length;
 
+    // Configuración de las tres secciones con sus estilos y mensajes vacíos
     const sections: Section[] = [
         {
             key: "vencidas",
@@ -72,6 +98,7 @@ export default function HoyPage() {
         },
     ];
 
+    // Estado de carga
     if (loadState === "loading") {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4" role="status" aria-live="polite">
@@ -81,6 +108,7 @@ export default function HoyPage() {
         );
     }
 
+    // Error de red
     if (loadState === "error") {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4" role="alert">
@@ -93,14 +121,14 @@ export default function HoyPage() {
         );
     }
 
+    // Sin subtareas — invita a crear una actividad con pasos
     if (total === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
                 <span className="text-5xl">🌿</span>
                 <p className="text-slate-300 font-semibold text-lg">¡Todo en calma!</p>
                 <p className="text-slate-500 text-sm max-w-xs">No tienes subtareas registradas. Crea una actividad con pasos para verlos aquí.</p>
-                <button
-                    onClick={() => navigate("/crear")}
+                <button onClick={() => navigate("/crear")}
                     className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold px-6 py-3 rounded-xl transition shadow-lg shadow-violet-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                 >
                     Crear actividad
@@ -111,7 +139,7 @@ export default function HoyPage() {
 
     return (
         <div className="space-y-8">
-            {/* Header */}
+            {/* Encabezado con saludo y fecha */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-white text-2xl font-bold tracking-tight">
@@ -121,15 +149,14 @@ export default function HoyPage() {
                         {new Date().toLocaleDateString("es-CO", { weekday: "long", month: "long", day: "numeric" })}
                     </p>
                 </div>
-                <button
-                    onClick={() => navigate("/crear")}
+                <button onClick={() => navigate("/crear")}
                     className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-lg shadow-violet-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                 >
                     + Nueva
                 </button>
             </div>
 
-            {/* Summary pills */}
+            {/* Pills resumen */}
             <div className="flex gap-3 flex-wrap">
                 {forToday.length > 0 && (
                     <span className="bg-violet-500/15 text-violet-300 border border-violet-500/30 text-xs font-medium px-3 py-1.5 rounded-full">
@@ -148,7 +175,7 @@ export default function HoyPage() {
                 )}
             </div>
 
-            {/* Sections */}
+            {/* Tres secciones: Vencidas / Para hoy / Próximas */}
             {sections.map(({ key, label, items, badge, badgeClass, emptyMsg, accentColor }) => (
                 <section key={key} aria-labelledby={`section-${key}`}>
                     <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
@@ -163,6 +190,7 @@ export default function HoyPage() {
                     ) : (
                         <div className="space-y-3">
                             {items.map((item) => (
+                                // Clic navega a /actividad/{task_id} (NO subtask.id)
                                 <button
                                     key={item.id}
                                     onClick={() => navigate(`/actividad/${item.task_id}`)}

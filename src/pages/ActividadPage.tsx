@@ -1,3 +1,28 @@
+/**
+ * pages/ActividadPage.tsx — Detalle de una tarea (ruta /actividad/:id).
+ *
+ * Página central de interacción. Permite al usuario:
+ *   - Ver todos los detalles de una tarea (título, materia, fecha, prioridad).
+ *   - Cambiar el estado de la tarea (pending → in_progress → done).
+ *   - Ver y marcar las subtareas como completadas o pendientes.
+ *   - Verificar si una subtarea genera sobrecarga diaria (botón ⚡).
+ *   - Eliminar la tarea completa con confirmación.
+ *
+ * Flujo de carga al montar:
+ *   1. taskService.getById(id)       → GET /tasks/{id}
+ *   2. subtaskService.getByTask(id)  → GET /subtasks/task/{id}
+ *   3. subjectService.getById(subject_id) → GET /subjects/{id}  (en paralelo con 2)
+ *
+ * Peticiones al backend:
+ *   GET    /tasks/{id}
+ *   GET    /subtasks/task/{id}
+ *   GET    /subjects/{subject_id}
+ *   PATCH  /tasks/{id}              (cambiar estado de la tarea)
+ *   PATCH  /subtasks/{id}           (marcar subtarea como done/pending)
+ *   DELETE /tasks/{id}              (eliminar tarea)
+ *   POST   /subtasks/{id}/check-conflict  (verificar sobrecarga ⚡)
+ */
+
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { taskService } from "../services/taskService";
@@ -36,6 +61,12 @@ export default function ActividadPage() {
     const [errorMsg, setErrorMsg] = useState("");
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [deletingTask, setDeletingTask] = useState(false);
+
+    /**
+     * Mapa de resultados de check-conflict por subtarea.
+     * Clave: subtask.id, Valor: ConflictResult.
+     * Se muestra inline bajo cada subtarea que fue verificada.
+     */
     const [conflictInfo, setConflictInfo] = useState<Record<string, ConflictResult>>({});
 
     useEffect(() => {
@@ -44,6 +75,10 @@ export default function ActividadPage() {
         load(id);
     }, [id]);
 
+    /**
+     * Carga en paralelo la tarea, sus subtareas y su materia.
+     * Llama a GET /tasks/{id}, GET /subtasks/task/{id}, GET /subjects/{subject_id}.
+     */
     async function load(taskId: string) {
         setLoadState("loading");
         try {
@@ -62,16 +97,25 @@ export default function ActividadPage() {
         }
     }
 
+    /**
+     * Actualiza el estado de la tarea (pending / in_progress / done).
+     * Llama a PATCH /tasks/{id} con { status }.
+     */
     async function updateTaskStatus(status: TaskStatus) {
         if (!task) return;
         setUpdatingStatus(true);
         try {
             const updated = await taskService.update(task.id, { status });
             setTask(updated);
-        } catch {/* silently fail */ }
+        } catch {/* falla silenciosamente — UI no cambia */ }
         finally { setUpdatingStatus(false); }
     }
 
+    /**
+     * Alterna el estado de una subtarea entre "pending" y "done".
+     * Llama a PATCH /subtasks/{id} con { status }.
+     * Actualiza la subtarea en el estado local sin recargar todo.
+     */
     async function toggleSubtask(sub: Subtask) {
         const newStatus = sub.status === "done" ? "pending" : "done";
         try {
@@ -80,6 +124,11 @@ export default function ActividadPage() {
         } catch {/* ignore */ }
     }
 
+    /**
+     * Elimina la tarea completa (con todas sus subtareas en cascada).
+     * Llama a DELETE /tasks/{id}.
+     * Redirige a /hoy tras confirmar.
+     */
     async function deleteTask() {
         if (!task) return;
         if (!confirm("¿Eliminar esta actividad y todas sus subtareas?")) return;
@@ -90,6 +139,11 @@ export default function ActividadPage() {
         } catch { setDeletingTask(false); }
     }
 
+    /**
+     * Verifica si la subtarea genera sobrecarga en su fecha objetivo (US-07).
+     * Llama a POST /subtasks/{id}/check-conflict con query params.
+     * El resultado se almacena en conflictInfo[sub.id] y se muestra inline.
+     */
     async function checkConflict(sub: Subtask) {
         if (!session || !sub.target_date || !sub.estimated_minutes) return;
         try {
@@ -103,6 +157,7 @@ export default function ActividadPage() {
         } catch {/* ignore */ }
     }
 
+    // Estado de carga
     if (loadState === "loading") {
         return (
             <div className="flex items-center justify-center py-24" role="status" aria-live="polite">
@@ -111,6 +166,7 @@ export default function ActividadPage() {
         );
     }
 
+    // Error al cargar
     if (loadState === "error" || !task) {
         return (
             <div className="flex flex-col items-center py-24 gap-4" role="alert">
@@ -123,6 +179,7 @@ export default function ActividadPage() {
         );
     }
 
+    // Cálculos de UI
     const dueDate = new Date(task.due_date + "T00:00:00");
     const formattedDate = dueDate.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const hours = Math.floor((task.duration_minutes ?? 0) / 60);
@@ -137,13 +194,13 @@ export default function ActividadPage() {
                 ← Volver
             </button>
 
-            {/* Header card */}
+            {/* Tarjeta principal de la tarea */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
+                        {/* Chip de materia con color dinámico */}
                         {subject && (
-                            <span
-                                className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-2"
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-2"
                                 style={{ backgroundColor: subject.color + "25", color: subject.color }}
                             >
                                 {subject.name}
@@ -163,7 +220,7 @@ export default function ActividadPage() {
                     {task.duration_minutes && <span>⏱ {durationLabel}</span>}
                 </div>
 
-                {/* Progress bar */}
+                {/* Barra de progreso de subtareas */}
                 {progress !== null && (
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-xs text-slate-500">
@@ -171,31 +228,22 @@ export default function ActividadPage() {
                             <span>{completedCount}/{subtasks.length}</span>
                         </div>
                         <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500 rounded-full"
+                            <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500 rounded-full"
                                 style={{ width: `${progress}%` }}
-                                role="progressbar"
-                                aria-valuenow={progress}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
+                                role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}
                             />
                         </div>
                     </div>
                 )}
 
-                {/* Status selector */}
+                {/* Selector de estado de la tarea */}
                 <div>
                     <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">Estado</p>
                     <div className="flex gap-2 flex-wrap">
                         {STATUS_OPTIONS.map(({ value, label }) => (
-                            <button
-                                key={value}
-                                onClick={() => updateTaskStatus(value)}
+                            <button key={value} onClick={() => updateTaskStatus(value)}
                                 disabled={updatingStatus}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:opacity-50 ${task.status === value
-                                        ? STATUS_ACTIVE_STYLES[value]
-                                        : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600"
-                                    }`}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:opacity-50 ${task.status === value ? STATUS_ACTIVE_STYLES[value] : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600"}`}
                                 aria-pressed={task.status === value}
                             >
                                 {label}
@@ -205,7 +253,7 @@ export default function ActividadPage() {
                 </div>
             </div>
 
-            {/* Subtasks */}
+            {/* Lista de subtareas */}
             {subtasks.length > 0 && (
                 <section aria-labelledby="subtasks-heading">
                     <h2 id="subtasks-heading" className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
@@ -218,13 +266,11 @@ export default function ActividadPage() {
                             return (
                                 <div key={sub.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
                                     <div className="flex items-start gap-3">
-                                        <button
-                                            onClick={() => toggleSubtask(sub)}
-                                            className={`mt-0.5 w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${isDone ? "bg-emerald-500 border-emerald-500" : "border-slate-600 hover:border-violet-400"
-                                                }`}
+                                        {/* Checkbox para marcar done/pending */}
+                                        <button onClick={() => toggleSubtask(sub)}
+                                            className={`mt-0.5 w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${isDone ? "bg-emerald-500 border-emerald-500" : "border-slate-600 hover:border-violet-400"}`}
                                             aria-label={`Marcar "${sub.title}" como ${isDone ? "pendiente" : "completada"}`}
-                                            role="checkbox"
-                                            aria-checked={isDone}
+                                            role="checkbox" aria-checked={isDone}
                                         >
                                             {isDone && <span className="text-white text-xs font-bold">✓</span>}
                                         </button>
@@ -239,21 +285,18 @@ export default function ActividadPage() {
                                                 {sub.target_date && <span>📅 {sub.target_date}</span>}
                                                 {sub.estimated_minutes && <span>⏱ {sub.estimated_minutes}min</span>}
                                             </div>
+                                            {/* Resultado del check-conflict (aparece al pulsar ⚡) */}
                                             {conflict && (
-                                                <div className={`mt-2 text-xs px-2.5 py-1.5 rounded-lg border ${conflict.has_conflict
-                                                        ? "bg-red-500/10 border-red-500/30 text-red-400"
-                                                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                                                    }`}>
+                                                <div className={`mt-2 text-xs px-2.5 py-1.5 rounded-lg border ${conflict.has_conflict ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"}`}>
                                                     {conflict.message}
                                                 </div>
                                             )}
                                         </div>
+                                        {/* Botón ⚡ — solo visible si hay fecha y minutos */}
                                         {sub.target_date && sub.estimated_minutes && (
-                                            <button
-                                                onClick={() => checkConflict(sub)}
+                                            <button onClick={() => checkConflict(sub)}
                                                 className="text-slate-600 hover:text-amber-400 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded shrink-0"
-                                                title="Verificar sobrecarga diaria"
-                                                aria-label="Verificar conflicto de carga"
+                                                title="Verificar sobrecarga diaria" aria-label="Verificar conflicto de carga"
                                             >
                                                 ⚡
                                             </button>
@@ -270,11 +313,9 @@ export default function ActividadPage() {
                 <p className="text-center text-slate-600 text-sm py-8">Esta actividad no tiene subtareas.</p>
             )}
 
-            {/* Delete */}
+            {/* Botón de eliminar tarea */}
             <div className="pt-4 border-t border-slate-800">
-                <button
-                    onClick={deleteTask}
-                    disabled={deletingTask}
+                <button onClick={deleteTask} disabled={deletingTask}
                     className="w-full text-red-500/70 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-sm font-medium py-3 rounded-xl transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-40"
                 >
                     {deletingTask ? "Eliminando..." : "🗑 Eliminar actividad"}

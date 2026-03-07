@@ -1,3 +1,26 @@
+/**
+ * pages/AuthPage.tsx — Página de autenticación (login y registro).
+ *
+ * Página pública accesible en /auth. Permite al usuario iniciar sesión
+ * o crear una cuenta nueva. Incluye un hint con credenciales demo.
+ *
+ * Flujo LOGIN:
+ *   1. Usuario ingresa email y contraseña.
+ *   2. authService.login() → POST /auth/login → Backend verifica credenciales.
+ *   3. authService.saveSession() guarda user_id, email, nombre en localStorage.
+ *   4. Redirige a /hoy.
+ *
+ * Flujo REGISTRO:
+ *   1. Usuario completa nombre, apellido, email, contraseña (y opcionalmente fecha nacimiento).
+ *   2. authService.register() → POST /users/ → Backend crea el usuario.
+ *   3. Auto-login: authService.login() con las mismas credenciales.
+ *   4. authService.saveSession() y redirige a /hoy.
+ *
+ * Peticiones al backend:
+ *   POST /auth/login  (login)
+ *   POST /users/      (registro)
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
@@ -11,15 +34,16 @@ export default function AuthPage() {
     const [state, setState] = useState<LoadingState>("idle");
     const [error, setError] = useState("");
 
-    // Login fields
+    // Campos compartidos login/registro
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    // Register extra fields
+    // Campos solo para registro
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [birthDate, setBirthDate] = useState("");
 
+    /** Maneja el envío del formulario para login o registro según el modo activo. */
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
@@ -27,11 +51,13 @@ export default function AuthPage() {
 
         try {
             if (mode === "login") {
+                // Login: POST /auth/login
                 const user = await authService.login({ email, password });
                 authService.saveSession(user);
                 setState("success");
                 navigate("/hoy");
             } else {
+                // Registro: POST /users/, luego auto-login
                 await authService.register({
                     first_name: firstName,
                     last_name: lastName,
@@ -39,7 +65,6 @@ export default function AuthPage() {
                     password,
                     birth_date: birthDate || undefined,
                 });
-                // Auto-login after register
                 const user = await authService.login({ email, password });
                 authService.saveSession(user);
                 setState("success");
@@ -47,6 +72,7 @@ export default function AuthPage() {
             }
         } catch (err: unknown) {
             setState("error");
+            // Extrae el mensaje de error del backend si está disponible
             const msg =
                 (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
                 "Ocurrió un error. Intenta de nuevo.";
@@ -58,14 +84,14 @@ export default function AuthPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-            {/* Background decoration */}
+            {/* Decoración de fondo con gradientes difuminados */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
                 <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
             </div>
 
             <div className="relative w-full max-w-md">
-                {/* Logo */}
+                {/* Logo y tagline */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-2 mb-3">
                         <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30">
@@ -76,17 +102,17 @@ export default function AuthPage() {
                     <p className="text-slate-400 text-sm">Organiza tu estudio. Alcanza tus metas.</p>
                 </div>
 
-                {/* Card */}
+                {/* Tarjeta principal */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-                    {/* Tab switcher */}
+                    {/* Selector de modo: login / registro */}
                     <div className="flex bg-slate-800 rounded-xl p-1 mb-8">
                         {(["login", "register"] as AuthMode[]).map((m) => (
                             <button
                                 key={m}
                                 onClick={() => { setMode(m); setError(""); }}
                                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${mode === m
-                                        ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
-                                        : "text-slate-400 hover:text-slate-200"
+                                    ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
+                                    : "text-slate-400 hover:text-slate-200"
                                     }`}
                             >
                                 {m === "login" ? "Iniciar sesión" : "Registrarse"}
@@ -95,7 +121,7 @@ export default function AuthPage() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                        {/* Register-only fields */}
+                        {/* Campos adicionales solo en modo registro */}
                         {mode === "register" && (
                             <>
                                 <div className="grid grid-cols-2 gap-3">
@@ -103,13 +129,8 @@ export default function AuthPage() {
                                         <label htmlFor="firstName" className="block text-sm font-medium text-slate-300 mb-1.5">
                                             Nombre
                                         </label>
-                                        <input
-                                            id="firstName"
-                                            type="text"
-                                            required
-                                            value={firstName}
-                                            onChange={(e) => setFirstName(e.target.value)}
-                                            placeholder="Ana"
+                                        <input id="firstName" type="text" required value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)} placeholder="Ana"
                                             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
                                         />
                                     </div>
@@ -117,13 +138,8 @@ export default function AuthPage() {
                                         <label htmlFor="lastName" className="block text-sm font-medium text-slate-300 mb-1.5">
                                             Apellido
                                         </label>
-                                        <input
-                                            id="lastName"
-                                            type="text"
-                                            required
-                                            value={lastName}
-                                            onChange={(e) => setLastName(e.target.value)}
-                                            placeholder="García"
+                                        <input id="lastName" type="text" required value={lastName}
+                                            onChange={(e) => setLastName(e.target.value)} placeholder="García"
                                             className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
                                         />
                                     </div>
@@ -132,10 +148,7 @@ export default function AuthPage() {
                                     <label htmlFor="birthDate" className="block text-sm font-medium text-slate-300 mb-1.5">
                                         Fecha de nacimiento <span className="text-slate-500">(opcional)</span>
                                     </label>
-                                    <input
-                                        id="birthDate"
-                                        type="date"
-                                        value={birthDate}
+                                    <input id="birthDate" type="date" value={birthDate}
                                         onChange={(e) => setBirthDate(e.target.value)}
                                         className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
                                     />
@@ -143,18 +156,13 @@ export default function AuthPage() {
                             </>
                         )}
 
-                        {/* Common fields */}
+                        {/* Campos compartidos */}
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">
                                 Correo electrónico
                             </label>
-                            <input
-                                id="email"
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="tucorreo@ejemplo.com"
+                            <input id="email" type="email" required value={email}
+                                onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@ejemplo.com"
                                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
                             />
                         </div>
@@ -162,39 +170,27 @@ export default function AuthPage() {
                             <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1.5">
                                 Contraseña
                             </label>
-                            <input
-                                id="password"
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
+                            <input id="password" type="password" required value={password}
+                                onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
                                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
                             />
                         </div>
 
-                        {/* Error */}
+                        {/* Mensaje de error del backend */}
                         {state === "error" && (
                             <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
                                 {error}
                             </div>
                         )}
 
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={isLoading}
+                        <button type="submit" disabled={isLoading}
                             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 shadow-lg shadow-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-slate-900 mt-2"
                         >
-                            {isLoading
-                                ? "Cargando..."
-                                : mode === "login"
-                                    ? "Ingresar"
-                                    : "Crear cuenta"}
+                            {isLoading ? "Cargando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
                         </button>
                     </form>
 
-                    {/* Demo hint */}
+                    {/* Credenciales demo para facilitar pruebas */}
                     {mode === "login" && (
                         <p className="text-center text-slate-500 text-xs mt-5">
                             Demo: <span className="text-slate-400">jose@gmail.com</span> / <span className="text-slate-400">123456</span>
