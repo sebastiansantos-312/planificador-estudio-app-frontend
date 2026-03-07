@@ -133,7 +133,8 @@ export default function CrearPage() {
             }
 
             setSubmitState("success");
-            navigate(`/actividad/${task.id}`);
+            // Espera un momento para que el usuario vea el mensaje de éxito
+            setTimeout(() => navigate(`/actividad/${task.id}`), 1500);
         } catch {
             setSubmitState("error");
             setErrorMsg("No se pudo crear la actividad. Verifica los datos e intenta de nuevo.");
@@ -319,6 +320,13 @@ export default function CrearPage() {
                         >+ Agregar paso</button>
                     )}
                 </fieldset>
+
+                {submitState === "success" && (
+                    <div role="status" className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+                        <span className="text-lg">✅</span>
+                        <span>¡Actividad creada correctamente! Redirigiendo...</span>
+                    </div>
+                )}
 
                 {submitState === "error" && (
                     <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl px-4 py-3">
