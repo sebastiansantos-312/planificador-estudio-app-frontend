@@ -1,24 +1,28 @@
-/**
- * services/api.ts — Instancia base de Axios para todas las peticiones HTTP.
- *
- * Configura la URL base del backend desplegado en Render y el header
- * Content-Type común para todos los endpoints.
- *
- * Todos los servicios (authService, taskService, subjectService, subtaskService)
- * importan esta instancia en lugar de usar axios directamente, de modo que
- * cualquier cambio de URL o header global se aplica automáticamente.
- *
- * Flujo de una petición típica:
- *   Componente → Service → api (Axios) → Backend en Render → Supabase (PostgreSQL)
- *
- * Backend URL: https://planificador-backend-fast.onrender.com
- */
-
 import axios from "axios";
 
 const api = axios.create({
     baseURL: "https://planificador-backend-fast.onrender.com",
-    headers: { "Content-Type": "application/json" },
 });
+
+// Interceptor: agrega el JWT en cada request automáticamente
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Interceptor: si el token expiró (401) → redirige al login
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.clear();
+            window.location.href = "/auth";
+        }
+        return Promise.reject(error);
+    }
+);
 
 export default api;

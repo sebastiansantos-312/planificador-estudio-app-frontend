@@ -19,6 +19,7 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
+    access_token: string;
     user_id: string;
     email: string;
     first_name: string;
