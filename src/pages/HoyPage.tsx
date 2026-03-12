@@ -175,6 +175,15 @@ export default function HoyPage() {
                 )}
             </div>
 
+            {/* C3 — Regla de priorización visible */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-400 leading-relaxed">
+                <span className="text-slate-300 font-semibold">📌 Regla de priorización: </span>
+                Primero las <span className="text-red-400 font-medium">vencidas</span> (más antiguas primero),
+                luego las de <span className="text-violet-400 font-medium">hoy</span> (menor esfuerzo primero)
+                y finalmente las <span className="text-slate-300 font-medium">próximas</span>.
+                En empate de fecha, se prioriza el menor tiempo estimado.
+            </div>
+
             {/* Tres secciones: Vencidas / Para hoy / Próximas */}
             {sections.map(({ key, label, items, badge, badgeClass, emptyMsg, accentColor }) => (
                 <section key={key} aria-labelledby={`section-${key}`}>
