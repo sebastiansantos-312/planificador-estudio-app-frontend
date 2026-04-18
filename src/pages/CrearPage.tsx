@@ -318,7 +318,7 @@ export default function CrearPage() {
                 )}
 
                 {/* Botón de envío — deshabilitado si faltan campos obligatorios */}
-                <button type="submit" disabled={isLoading || !title.trim() || !subjectId || !dueDate}
+                <button type="submit" disabled={isLoading || !title.trim() || !dueDate}
                     className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-violet-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
                     {isLoading ? "Creando..." : "Crear actividad"}
