@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { taskService } from "../services/taskService";
 import { subtaskService } from "../services/subtaskService";
-import { subjectService } from "../services/subjectService";
 import { authService } from "../services/authService";
 import type { Task, Subtask, Subject, TaskStatus, LoadingState, ConflictResult } from "../types";
 
@@ -38,6 +37,16 @@ const TASK_TYPE_ICONS: Record<string, string> = {
     otro: "📌",
 };
 
+// Materias estáticas predefinidas
+const STATIC_SUBJECTS: Subject[] = [
+    { id: "math", name: "Matemáticas", color: "#ff6b6b", user_id: "" },
+    { id: "science", name: "Ciencias Naturales", color: "#4ecdc4", user_id: "" },
+    { id: "languages", name: "Lenguas", color: "#45b7d1", user_id: "" },
+    { id: "history", name: "Historia", color: "#f9ca24", user_id: "" },
+    { id: "geography", name: "Geografía", color: "#6c5ce7", user_id: "" },
+    { id: "english", name: "Inglés", color: "#a29bfe", user_id: "" },
+];
+
 export default function ActividadPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -63,11 +72,9 @@ export default function ActividadPage() {
         try {
             const t = await taskService.getById(taskId);
             setTask(t);
-            const [subs, s] = await Promise.all([
-                subtaskService.getByTask(taskId),
-                t.subject_id ? subjectService.getById(t.subject_id) : Promise.resolve(null),
-            ]);
+            const subs = await subtaskService.getByTask(taskId);
             setSubtasks(subs);
+            const s = STATIC_SUBJECTS.find(sub => sub.id === t.subject_id) || null;
             setSubject(s);
             setLoadState("success");
         } catch {
