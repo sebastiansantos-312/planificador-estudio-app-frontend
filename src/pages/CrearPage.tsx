@@ -21,10 +21,11 @@
  *   POST /subtasks/          (una por cada paso agregado)
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taskService } from "../services/taskService";
 import { subtaskService } from "../services/subtaskService";
+import { subjectService } from "../services/subjectService";
 import { authService } from "../services/authService";
 import type { Subject, TaskPriority, SubtaskCreate, LoadingState } from "../types";
 
@@ -40,19 +41,12 @@ export default function CrearPage() {
     const navigate = useNavigate();
     const session = authService.getSession();
 
-    // Materias estáticas predefinidas
-    const subjects: Subject[] = [
-        { id: "math", name: "Matemáticas", color: "#ff6b6b", user_id: "" },
-        { id: "science", name: "Ciencias Naturales", color: "#4ecdc4", user_id: "" },
-        { id: "languages", name: "Lenguas", color: "#45b7d1", user_id: "" },
-        { id: "history", name: "Historia", color: "#f9ca24", user_id: "" },
-        { id: "geography", name: "Geografía", color: "#6c5ce7", user_id: "" },
-        { id: "english", name: "Inglés", color: "#a29bfe", user_id: "" },
-    ];
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [subjectsState, setSubjectsState] = useState<LoadingState>("loading");
 
     // Campos del formulario de tarea
     const [title, setTitle] = useState("");
-    const [subjectId, setSubjectId] = useState("math"); // Default to first
+    const [subjectId, setSubjectId] = useState("");
     const [dueDate, setDueDate] = useState("");
     const [durationMinutes, setDurationMinutes] = useState(60);
     const [priority, setPriority] = useState<TaskPriority>("media");
@@ -66,6 +60,24 @@ export default function CrearPage() {
 
     const [submitState, setSubmitState] = useState<LoadingState>("idle");
     const [errorMsg, setErrorMsg] = useState("");
+
+    useEffect(() => {
+        if (!session) return;
+        loadSubjects();
+    }, []);
+
+    async function loadSubjects() {
+        if (!session) return;
+        try {
+            const data = await subjectService.getByEmail(session.email);
+            setSubjects(data);
+            if (data.length > 0) setSubjectId(data[0].id);
+            setSubjectsState("success");
+        } catch (error) {
+            console.error("Cargar materias error:", error);
+            setSubjectsState("error");
+        }
+    }
 
     /** Agrega una subtarea al draft local (sin llamar al backend todavía). */
     function addSubtask() {
@@ -118,7 +130,8 @@ export default function CrearPage() {
 
             setSubmitState("success");
             navigate(`/actividad/${task.id}`);
-        } catch {
+        } catch (error) {
+            console.error("Crear actividad error:", error);
             setSubmitState("error");
             setErrorMsg("No se pudo crear la actividad. Verifica los datos e intenta de nuevo.");
         }
@@ -160,18 +173,25 @@ export default function CrearPage() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Materia *</label>
-                        {/* Selector visual de materia — botón por cada materia */}
-                        <div className="flex flex-wrap gap-2">
-                            {subjects.map((s, index) => (
-                                <button key={`${s.id}-${index}`} type="button" onClick={() => setSubjectId(s.id)}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${subjectId === s.id ? "border-transparent text-white shadow-md" : "border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 bg-slate-800"}`}
-                                    style={subjectId === s.id ? { backgroundColor: s.color, boxShadow: `0 4px 14px ${s.color}40` } : {}}
-                                    aria-pressed={subjectId === s.id}
-                                >
-                                    {s.name}
-                                </button>
-                            ))}
-                        </div>
+                        {subjectsState === "loading" ? (
+                            <div className="h-10 bg-slate-800 rounded-xl animate-pulse" />
+                        ) : subjectsState === "error" ? (
+                            <p className="text-red-400 text-sm">Error cargando materias.</p>
+                        ) : subjects.length === 0 ? (
+                            <div className="text-slate-500 text-sm">No se encontraron materias predefinidas.</div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {subjects.map((s) => (
+                                    <button key={s.id} type="button" onClick={() => setSubjectId(s.id)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${subjectId === s.id ? "border-transparent text-white shadow-md" : "border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 bg-slate-800"}`}
+                                        style={subjectId === s.id ? { backgroundColor: s.color, boxShadow: `0 4px 14px ${s.color}40` } : {}}
+                                        aria-pressed={subjectId === s.id}
+                                    >
+                                        {s.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </fieldset>
 

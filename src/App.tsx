@@ -14,7 +14,6 @@
  *     /crear             →   CrearPage   — Formulario nueva tarea + subtareas
  *     /actividad/:id     →   ActividadPage — Detalle de tarea, cambiar estado, marcar pasos
  *     /progreso          →   ProgresoPage — Estadísticas globales y por materia
- *     /materias          →   MateriasPage — CRUD de materias con selector de color
  *   /*                   → Fallback: redirige a /hoy si autenticado, o a /auth si no.
  *
  * La verificación de sesión la hace ProtectedRoute consultando localStorage.
@@ -30,7 +29,6 @@ import HoyPage from "./pages/HoyPage";
 import CrearPage from "./pages/CrearPage";
 import ActividadPage from "./pages/ActividadPage";
 import ProgresoPage from "./pages/ProgresoPage";
-import MateriasPage from "./pages/MateriasPage";
 
 export default function App() {
   return (
@@ -62,9 +60,6 @@ export default function App() {
 
           {/* Progreso global y por materia */}
           <Route path="progreso" element={<ProgresoPage />} />
-
-          {/* CRUD de materias */}
-          <Route path="materias" element={<MateriasPage />} />
         </Route>
 
         {/* Fallback — cualquier ruta desconocida */}
