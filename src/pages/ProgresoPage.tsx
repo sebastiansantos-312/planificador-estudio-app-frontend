@@ -22,7 +22,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taskService } from "../services/taskService";
-import { subjectService } from "../services/subjectService";
 import { authService } from "../services/authService";
 import type { Task, Subject, LoadingState } from "../types";
 
@@ -37,8 +36,17 @@ export default function ProgresoPage() {
     const navigate = useNavigate();
     const session = authService.getSession();
 
+    // Materias estáticas predefinidas
+    const subjects: Subject[] = [
+        { id: "math", name: "Matemáticas", color: "#ff6b6b", user_id: "" },
+        { id: "science", name: "Ciencias Naturales", color: "#4ecdc4", user_id: "" },
+        { id: "languages", name: "Lenguas", color: "#45b7d1", user_id: "" },
+        { id: "history", name: "Historia", color: "#f9ca24", user_id: "" },
+        { id: "geography", name: "Geografía", color: "#6c5ce7", user_id: "" },
+        { id: "english", name: "Inglés", color: "#a29bfe", user_id: "" },
+    ];
+
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loadState, setLoadState] = useState<LoadingState>("loading");
     const [errorMsg, setErrorMsg] = useState("");
 
@@ -49,17 +57,13 @@ export default function ProgresoPage() {
 
     /**
      * Carga tareas y materias en paralelo.
-     * Llama a GET /tasks/by-email y GET /subjects/by-email simultáneamente.
+     * Las materias son estáticas.
      */
     async function load() {
         if (!session) return;
         try {
-            const [ts, ss] = await Promise.all([
-                taskService.getByEmail(session.email),
-                subjectService.getByEmail(session.email),
-            ]);
+            const ts = await taskService.getByEmail(session.email);
             setTasks(ts);
-            setSubjects(ss);
             setLoadState("success");
         } catch {
             setLoadState("error");
