@@ -35,7 +35,6 @@ export default function Layout() {
     const navItems = [
         { to: "/hoy", label: "Hoy", icon: "☀️" },
         { to: "/crear", label: "Crear", icon: "✏️" },
-        { to: "/materias", label: "Materias", icon: "📚" },
         { to: "/progreso", label: "Progreso", icon: "📊" },
     ];
 
