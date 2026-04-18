@@ -86,7 +86,7 @@ export interface Task {
 export interface TaskCreate {
     title: string;
     task_type?: TaskType;                                         // ← NUEVO (US-01)
-    subject_id: string;
+    subject_id?: string | null;
     user_id: string;
     due_date: string;
     duration_minutes: number;

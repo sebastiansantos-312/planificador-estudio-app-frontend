@@ -71,7 +71,6 @@ export default function CrearPage() {
         try {
             const data = await subjectService.getByEmail(session.email);
             setSubjects(data);
-            if (data.length > 0) setSubjectId(data[0].id);
             setSubjectsState("success");
         } catch (error) {
             console.error("Cargar materias error:", error);
@@ -99,7 +98,7 @@ export default function CrearPage() {
      */
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!session || !subjectId) return;
+        if (!session) return;
         setErrorMsg("");
         setSubmitState("loading");
 
@@ -107,7 +106,7 @@ export default function CrearPage() {
             // Crear la tarea principal
             const task = await taskService.create({
                 title,
-                subject_id: subjectId,
+                subject_id: subjectId || null,
                 user_id: session.user_id,
                 due_date: dueDate,
                 duration_minutes: durationMinutes,
@@ -172,7 +171,7 @@ export default function CrearPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Materia *</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Materia <span className="text-slate-600 font-normal">(opcional)</span></label>
                         {subjectsState === "loading" ? (
                             <div className="h-10 bg-slate-800 rounded-xl animate-pulse" />
                         ) : subjectsState === "error" ? (
@@ -181,6 +180,12 @@ export default function CrearPage() {
                             <div className="text-slate-500 text-sm">No se encontraron materias predefinidas.</div>
                         ) : (
                             <div className="flex flex-wrap gap-2">
+                                <button key="none" type="button" onClick={() => setSubjectId("")}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${subjectId === "" ? "border-transparent text-white shadow-md bg-slate-700" : "border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 bg-slate-800"}`}
+                                    aria-pressed={subjectId === ""}
+                                >
+                                    Ninguna
+                                </button>
                                 {subjects.map((s) => (
                                     <button key={s.id} type="button" onClick={() => setSubjectId(s.id)}
                                         className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${subjectId === s.id ? "border-transparent text-white shadow-md" : "border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 bg-slate-800"}`}
